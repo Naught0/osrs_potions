@@ -6,8 +6,10 @@ Running this script will give you information about any herb that you wish to tu
 
 ### Usage
 `python3 potions.py [herb name]`
+
 If using linux it'd be useful to `chmod +x potions.py`.
-After than you can `./potions.py [herb name]` i.e. `./potions.py tarromin`.
+After that you can `./potions.py [herb name]` i.e. `./potions.py tarromin`.
+
 It should spit out information that looks like this:
 ```
 Tarromin
