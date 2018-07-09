@@ -9,7 +9,6 @@ class PotionCalculator:
         with open('item-data.json') as f:
             self.item_data = json.load(f)
         self.price_data = requests.get('https://storage.googleapis.com/osbuddy-exchange/summary.json').json()
-        self.water_price = self.get_item('vial of water')['buy_average']
 
     def get_item(self, item: str) -> dict:
         """Gets the price of an OSRS item from self.item_data dict
@@ -40,8 +39,9 @@ class PotionCalculator:
         potion_name = f'{herb_name.split()[0]} potion (unf)'
         herb_data = self.get_item(herb_name)
         potion_data = self.get_item(potion_name)
+        water_price = self.get_item('vial of water')['buying']
 
-        profit = potion_data['sell_average'] - (herb_data['buy_average'] + self.water_price)
+        profit = potion_data['sell_average'] - (herb_data['buy_average'] + water_price)
 
         return {'herb': herb_name,
                 'pot': potion_name,
