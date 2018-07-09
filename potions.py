@@ -39,7 +39,7 @@ class PotionCalculator:
         potion_name = f'{herb_name.split()[0]} potion (unf)'
         herb_data = self.get_item(herb_name)
         potion_data = self.get_item(potion_name)
-        water_price = self.get_item('vial of water')['buying']
+        water_price = self.get_item('vial of water')['buy_average']
 
         profit = potion_data['sell_average'] - (herb_data['buy_average'] + water_price)
 
