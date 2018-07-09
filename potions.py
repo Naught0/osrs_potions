@@ -1,95 +1,82 @@
-#!/bin/python3
 import json
 import sys
 
 import requests
 
 
-# This rarely changes so I'll set it here instead of requesting it
-WATER_PRICE = 5
+class PotionCalculator:
+    def __init__(self):
+        self.water_price = 5
+        with open('item-data.json') as f:
+            self.item_data = json.load(f)
+        self.price_data = requests.get('https://storage.googleapis.com/osbuddy-exchange/summary.json').json()
 
-# Load the items along with their corresponding IDs
-with open("item-data.json") as f:
-    ITEM_DATA = json.load(f)
+    def get_item(self, item: str) -> dict:
+        """Gets the price of an OSRS item from self.item_data dict
+        
+        Args:
+            item (str): The item to get pricing information about
+        
+        Returns:
+            dict: The request item's pricing data
+        
+        Raises:
+            KeyError: If the item isn't in the dict
+        """
+        if item not in self.item_data:
+            raise KeyError(f'Item {item} not found.')
 
+        return self.price_data[str(self.item_data[item]['id'])]
 
-def get_item(item: str) -> dict:
-    """Gets the buying or selling price of a specific Runescape item
-    
-    Args:
-        item (str): The item's ID
-    
-    Returns:
-        dict: A json respresentation of the item's current value
-              Return values appear in this format (Cannonballs for example):
-                {'overall': 200, 'buying': 203, 'buyingQuantity': 599379, '
-                selling': 197, 'sellingQuantity': 571297}
-    
-    Raises:
-        ConnectionError
-    """
-    if item not in ITEM_DATA:
-        return print(f"Couldn't find {item} in item-data.json")
+    def get_potion_profit(self, herb_name: str) -> dict:
+        """Calculates the net profit of potion - (herb + water)
+        
+        Args:
+            herb_name (str): The name of the herb
+        
+        Returns:
+            dict: Profit for a given herb & potion
+        """
+        potion_name = f'{herb_name.split()[0]} potion (unf)'
+        herb_data = self.get_item(herb_name)
+        potion_data = self.get_item(potion_name)
 
-    url = 'https://api.rsbuddy.com/grandExchange'
-    params = {'a': 'guidePrice', 'i': ITEM_DATA[item]['id']}
-    response = requests.get(url, params=params)
+        profit = potion_data['sell_average'] - (herb_data['buy_average'] + self.water_price)
 
-    if response.status_code != 200:
-        raise ConnectionError(f'RSBuddy API went RIP, try again later. Code {response.status_code}')
+        return {'herb': herb_name,
+                'pot': potion_name,
+                'buy': herb_data['buy_average'],
+                'sell': potion_data['sell_average'],
+                'profit': profit, 
+                'herb_qty': (herb_data['buy_quantity'], herb_data['sell_quantity']), 
+                'potion_qty': (potion_data['buy_quantity'], potion_data['sell_quantity'])}
 
-    return response.json()
-
-
-def get_potion_profit(herb_name: str) -> dict:
-    """Calculates the net profit of potion - (herb + water)
-    
-    Args:
-        herb_name (str): The name of the herb
-    """
-    potion_name = f'{herb_name.split()[0]} potion (unf)'
-    herb_data = get_item(herb_name)
-    potion_data = get_item(potion_name)
-
-    profit = potion_data['selling'] - (herb_data['buying'] + WATER_PRICE)
-
-    return {'herb': herb_name,
-            'pot': potion_name,
-            'buy': herb_data['buying'],
-            'sell': potion_data['selling'],
-            'profit': profit, 
-            'herb_qty': (herb_data['buyingQuantity'], herb_data['sellingQuantity']), 
-            'potion_qty': (potion_data['buyingQuantity'], potion_data['sellingQuantity'])}
-
-
-def print_potion_profit(data: dict):
-    """Nicely prints the potion profit information
-    
-    Args:
-        data (dict): data from :func:`get_potion_profit()`
-    """
-    print(f'{data["herb"].title()}\n'
-          f'Buy: {data["buy"]:,}\n'
-          f'Sell: {data["sell"]:,}\n'
-          f'Profit: {data["profit"]:,}\n'
-          f'Buy/Sell Qty: ({data["potion_qty"][0]:,}/{data["potion_qty"][1]:,})\n'
-          f'{"".join("-" for x in range(30))}')
-
-
-def main():
-    """This is mostly for my purposes, but should fit most people's stats anyway"""
-    herbs = ['tarromin', 'harralander', 'ranarr weed', 'toadflax', 
-             'irit leaf', 'avantoe', 'kwuarm']
-
-    for herb in herbs:
-        data = get_potion_profit(herb)
-        print_potion_profit(data)
+    def print_potion_profit(self, data: dict):
+        """Nicely prints the potion profit information
+        
+        Args:
+            data (dict): data from :func:`self.get_potion_profit()`
+        """
+        print(f'{data["herb"].title()}\n'
+              f'Buy: {data["buy"]:,}\n'
+              f'Sell: {data["sell"]:,}\n'
+              f'Profit: {data["profit"]:,}\n'
+              f'Buy/Sell Qty: ({data["potion_qty"][0]:,}/{data["potion_qty"][1]:,})\n'
+              f'{"".join("-" for x in range(30))}')
 
 
 if __name__ == '__main__':
     # If a specific herb is entered
+    calc = PotionCalculator()
+
     if len(sys.argv) > 1:
-        data = get_potion_profit(' '.join(sys.argv[1:]))
-        print_potion_profit(data)
+        data = calc.get_potion_profit(' '.join(sys.argv[1:]))
+        calc.print_potion_profit(data)
     else:
-        main()
+        # This is tailored to my current stats
+        herbs = ['tarromin', 'harralander', 'ranarr weed', 'toadflax', 
+                 'irit leaf', 'avantoe', 'kwuarm']
+
+        for herb in herbs:
+            data = calc.get_potion_profit(herb)
+            calc.print_potion_profit(data)
