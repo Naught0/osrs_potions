@@ -6,10 +6,10 @@ import requests
 
 class PotionCalculator:
     def __init__(self):
-        self.water_price = 5
         with open('item-data.json') as f:
             self.item_data = json.load(f)
         self.price_data = requests.get('https://storage.googleapis.com/osbuddy-exchange/summary.json').json()
+        self.water_price = self.get_item('vial of water')['buy_average']
 
     def get_item(self, item: str) -> dict:
         """Gets the price of an OSRS item from self.item_data dict
